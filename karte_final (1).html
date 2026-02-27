@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title id="pageTitle">カルテシステム</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* =====================================================
+   ▼▼▼ 下部のCONFIGで院名・担当者名を変更できます ▼▼▼
+===================================================== */
+:root{
+  --ink:#1c1510;--ink-mid:#4a3c2e;--ink-soft:#7a6a58;
+  --cream:#faf5ec;--cream-2:#f2ead8;--cream-3:#e8dfc9;
+  --gold:#b8935a;--gold-light:#d4b07a;--gold-pale:#f0e0c0;
+  --teal:#2d6a6a;--teal-light:#4a9090;
+  --red:#b03030;--green:#2a7a4a;
+  --border:#d4c4a0;--border-light:#e8dcc4;
+  --shadow-sm:0 2px 8px rgba(60,40,10,.10);
+  --shadow-md:0 4px 20px rgba(60,40,10,.14);
+  --shadow-lg:0 8px 40px rgba(60,40,10,.18);
+  --radius:6px;--tr:.22s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--cream-3);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .4s ease both}
+
+/* HEADER */
+.top-header{position:sticky;top:0;z-index:100;background:var(--ink);border-bottom:2px solid var(--gold);display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:52px}
+.header-logo{font-family:'Noto Serif JP',serif;font-size:1rem;letter-spacing:.15em;color:var(--cream);white-space:nowrap}
+.header-logo em{color:var(--gold);font-style:normal}
+.header-right{display:flex;align-items:center;gap:12px}
+.header-staff{font-size:.7rem;color:var(--gold-pale);letter-spacing:.08em;display:none}
+.hamburger{display:flex;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.hamburger span{display:block;width:22px;height:1.5px;background:var(--gold-light)}
+
+/* LAYOUT */
+.app-layout{display:flex;max-width:1280px;margin:0 auto;min-height:calc(100vh - 52px)}
+
+/* SIDEBAR */
+.sidebar{width:260px;flex-shrink:0;background:var(--cream);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:transform var(--tr);overflow-y:auto}
+.sidebar-inner{padding:18px 13px;display:flex;flex-direction:column;gap:18px}
+.sidebar-label{font-size:.62rem;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.patient-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--border-light);border-radius:var(--radius);cursor:pointer;transition:var(--tr);background:var(--cream)}
+.patient-item:hover{background:#fff8ee;border-color:var(--gold-light)}
+.patient-item.active{background:linear-gradient(135deg,#fff8ee,#fdf0d8);border-color:var(--gold);box-shadow:var(--shadow-sm)}
+.patient-avatar{width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--gold);font-family:'Noto Serif JP',serif;font-size:.76rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.patient-item.active .patient-avatar{background:var(--gold);color:var(--ink)}
+.p-name{font-size:.85rem;font-weight:500;color:var(--ink)}
+.p-meta{font-size:.67rem;color:var(--ink-soft);margin-top:1px}
+.new-btn{width:100%;padding:9px;background:var(--teal);color:#e0f2f2;border:none;font-family:'Noto Sans JP',sans-serif;font-size:.75rem;letter-spacing:.1em;cursor:pointer;border-radius:var(--radius);transition:var(--tr);margin-top:4px}
+.new-btn:hover{background:var(--teal-light)}
+.history-list{display:flex;flex-direction:column}
+.history-row{display:flex;justify-content:space-between;font-size:.7rem;color:var(--ink-mid);padding:5px 4px;border-bottom:1px solid var(--border-light)}
+.history-row:last-child{border-bottom:none}
+.visit-n{color:var(--gold)}
+
+/* MAIN */
+.main-area{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--cream-2)}
+.karte-scroll{flex:1;overflow-y:auto;padding:20px 16px}
+
+/* KARTE CARD */
+.karte-card{background:white;border:1.5px solid var(--border);max-width:820px;margin:0 auto;box-shadow:var(--shadow-md);border-radius:4px;overflow:hidden}
+.karte-top{background:var(--ink);padding:13px 18px;display:flex;align-items:center;justify-content:space-between}
+.karte-tag{font-size:.56rem;letter-spacing:.3em;color:var(--gold);text-transform:uppercase;margin-bottom:3px}
+.karte-salon{font-family:'Noto Serif JP',serif;font-size:1rem;letter-spacing:.15em;color:var(--cream)}
+.karte-top-right{text-align:right}
+.karte-no{font-size:.7rem;color:var(--gold-light)}
+.karte-date{font-size:.66rem;color:rgba(245,240,232,.6);margin-top:2px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;border-bottom:1.5px solid var(--border)}
+.info-col{border-right:1px solid var(--border)}
+.info-col:last-child{border-right:none}
+.info-row{display:grid;grid-template-columns:80px 1fr;border-bottom:1px solid var(--border-light);min-height:32px}
+.info-row:last-child{border-bottom:none}
+.lbl{background:#f8f0e0;font-size:.63rem;letter-spacing:.08em;color:var(--gold);padding:0 8px;display:flex;align-items:center;border-right:1px solid var(--border)}
+.val{font-size:.78rem;padding:5px 10px;color:var(--ink);display:flex;align-items:center}
+.val.name-val{font-family:'Noto Serif JP',serif;font-size:.96rem;font-weight:600}
+.karte-section{border-bottom:1px solid var(--border-light)}
+.section-head{background:#f8f2e4;padding:5px 14px;font-family:'Noto Serif JP',serif;font-size:.67rem;letter-spacing:.18em;color:var(--gold);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}
+.section-head::before{content:'';width:3px;height:10px;background:var(--gold);flex-shrink:0}
+.sec-body{padding:10px 14px;font-size:.78rem;color:var(--ink);line-height:1.85}
+.body-area{display:flex;gap:14px;padding:12px 14px;align-items:flex-start}
+.body-svg-wrap{flex-shrink:0;width:90px}
+.body-svg-wrap svg{width:100%}
+.pain-info{flex:1}
+.pain-tag{display:inline-block;background:#fff0ee;border:1px solid #e8a090;color:var(--red);font-size:.65rem;padding:2px 7px;border-radius:2px;margin:2px}
+.pain-detail{margin-top:9px;font-size:.7rem;color:var(--ink-mid);line-height:1.9}
+.visit-box{margin:0 14px 12px;border:1px solid var(--border);border-radius:3px;overflow:hidden;background:#fffdf8}
+.visit-head{background:var(--ink);color:var(--gold-pale);padding:5px 12px;font-size:.65rem;letter-spacing:.12em;display:flex;justify-content:space-between}
+.visit-body{padding:9px 12px}
+.vrow{display:flex;gap:8px;margin-bottom:5px;font-size:.75rem}
+.vlbl{font-size:.63rem;color:var(--gold);letter-spacing:.08em;flex-shrink:0;padding-top:2px;min-width:68px}
+.no-record{padding:28px 16px;text-align:center;color:var(--ink-soft);font-size:.78rem;line-height:2}
+
+/* VOICE PANEL */
+.voice-panel{background:var(--ink);border-top:2px solid var(--gold);padding:12px 14px}
+.voice-panel-inner{display:flex;gap:10px;align-items:flex-end;max-width:820px;margin:0 auto}
+.mic-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0}
+.mic-btn{width:50px;height:50px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--tr)}
+.mic-btn svg{width:21px;height:21px;fill:var(--ink)}
+.mic-btn.rec{background:var(--red);animation:pulse 1.2s infinite}
+.mic-btn.rec svg{fill:white}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(176,48,48,.5)}70%{box-shadow:0 0 0 14px rgba(176,48,48,0)}100%{box-shadow:0 0 0 0 rgba(176,48,48,0)}}
+.mic-label{font-size:.6rem;color:rgba(245,240,232,.5);letter-spacing:.07em;white-space:nowrap}
+.voice-input-area{flex:1;min-width:0}
+.voice-textarea{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(184,147,90,.35);border-radius:var(--radius);padding:9px 11px;color:var(--cream);font-family:'Noto Sans JP',sans-serif;font-size:.78rem;line-height:1.7;min-height:50px;max-height:90px;resize:none;outline:none}
+.voice-textarea::placeholder{color:rgba(245,240,232,.28);font-size:.72rem}
+.voice-hint{font-size:.6rem;color:rgba(245,240,232,.32);margin-top:4px}
+.voice-btns{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.vbtn{padding:8px 13px;border:none;border-radius:4px;font-family:'Noto Sans JP',sans-serif;font-size:.68rem;letter-spacing:.09em;cursor:pointer;transition:var(--tr);white-space:nowrap;font-weight:500}
+.vbtn-parse{background:var(--gold);color:var(--ink)}
+.vbtn-parse:hover{background:var(--gold-light)}
+.vbtn-save{background:var(--green);color:white}
+.vbtn-save:hover{background:#359958}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(20,14,8,.6);align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:var(--radius);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:fadeUp .3s ease}
+.modal-head{background:var(--ink);color:var(--gold-pale);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;font-family:'Noto Serif JP',serif;font-size:.9rem;letter-spacing:.15em}
+.modal-close{background:none;border:none;color:var(--gold-light);font-size:1.3rem;cursor:pointer;line-height:1;padding:0 4px}
+.modal-body{padding:18px;display:flex;flex-direction:column;gap:11px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:.67rem;color:var(--gold);letter-spacing:.1em}
+.form-input,.form-select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-family:'Noto Sans JP',sans-serif;font-size:.8rem;color:var(--ink);background:var(--cream);outline:none;transition:border-color var(--tr)}
+.form-input:focus,.form-select:focus{border-color:var(--gold)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{padding:8px 16px;background:var(--cream-3);border:1px solid var(--border);border-radius:4px;font-family:'Noto Sans JP',sans-serif;font-size:.74rem;cursor:pointer;color:var(--ink-mid)}
+.btn-register{padding:8px 18px;background:var(--teal);color:white;border:none;border-radius:4px;font-family:'Noto Sans JP',sans-serif;font-size:.74rem;font-weight:500;cursor:pointer;transition:var(--tr)}
+.btn-register:hover{background:var(--teal-light)}
+.btn-register:disabled{opacity:.6;cursor:not-allowed}
+
+/* SIDEBAR OVERLAY */
+.sidebar-overlay{display:none;position:fixed;inset:0;z-index:199;background:rgba(20,14,8,.55)}
+.sidebar-overlay.show{display:block}
+
+/* RESPONSIVE */
+@media(min-width:768px){
+  .header-staff{display:block}
+  .hamburger{display:none}
+  .sidebar{position:static}
+  .sidebar-overlay{display:none !important}
+  .karte-scroll{padding:22px}
+}
+@media(max-width:767px){
+  .sidebar{position:fixed;top:52px;left:0;bottom:0;z-index:200;width:78vw;max-width:300px;transform:translateX(-100%);box-shadow:var(--shadow-lg)}
+  .sidebar.open{transform:translateX(0)}
+  .info-grid{grid-template-columns:1fr}
+  .info-col{border-right:none;border-bottom:1px solid var(--border)}
+  .info-col:last-child{border-bottom:none}
+  .body-area{flex-direction:column;align-items:center}
+  .voice-panel-inner{flex-wrap:wrap}
+  .voice-input-area{width:100%;order:-1}
+  .voice-btns{flex-direction:row;width:100%}
+  .vbtn{flex:1;text-align:center}
+  .mic-wrap{flex-direction:row;gap:10px}
+  .form-row{grid-template-columns:1fr}
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- 新規患者登録モーダル -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span>新規患者を登録</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">氏名 *</label>
+          <input class="form-input" id="f-name" type="text" placeholder="山田 太郎">
+        </div>
+        <div class="form-group">
+          <label class="form-label">性別 *</label>
+          <select class="form-select" id="f-gender">
+            <option value="">選択</option>
+            <option value="男性">男性</option>
+            <option value="女性">女性</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">生年月日</label>
+          <input class="form-input" id="f-birth" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">電話番号</label>
+          <input class="form-input" id="f-phone" type="tel" placeholder="090-0000-0000">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">住所</label>
+        <input class="form-input" id="f-address" type="text" placeholder="東京都〇〇区...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">職業</label>
+        <input class="form-input" id="f-occupation" type="text" placeholder="会社員・主婦など">
+      </div>
+      <div class="form-group">
+        <label class="form-label">既往歴・特記事項</label>
+        <input class="form-input" id="f-history" type="text" placeholder="高血圧・手術歴など（なければ空欄）">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-register" id="btnRegister" onclick="registerPatient()">登録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ヘッダー -->
+<header class="top-header">
+  <div class="header-logo" id="headerLogo">カルテ</div>
+  <div class="header-right">
+    <div class="header-staff" id="headerStaff"></div>
+    <button class="hamburger" onclick="toggleMenu()" aria-label="メニュー">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeMenu()"></div>
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div>
+        <div class="sidebar-label">患者一覧</div>
+        <div id="patientList" style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:.72rem;color:var(--ink-soft);padding:8px 4px">読み込み中...</div>
+        </div>
+        <button class="new-btn" onclick="openModal()">＋ 新規患者を登録</button>
+      </div>
+      <div>
+        <div class="sidebar-label">来院履歴</div>
+        <div class="history-list" id="historyList">
+          <div style="font-size:.7rem;color:var(--ink-soft);padding:6px 4px">患者を選択してください</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="karte-scroll fade-in">
+      <div class="karte-card">
+        <div class="karte-top">
+          <div>
+            <div class="karte-tag">Medical Chart</div>
+            <div class="karte-salon" id="karteSalon">院名</div>
+          </div>
+          <div class="karte-top-right">
+            <div class="karte-no" id="karteNo">No. ----</div>
+            <div class="karte-date" id="karteDate"></div>
+          </div>
+        </div>
+        <div class="info-grid">
+          <div class="info-col">
+            <div class="info-row"><div class="lbl">氏名</div><div class="val name-val" id="kName">—</div></div>
+            <div class="info-row"><div class="lbl">生年月日</div><div class="val" id="kBirth">—</div></div>
+            <div class="info-row"><div class="lbl">性別</div><div class="val" id="kGender">—</div></div>
+            <div class="info-row"><div class="lbl">職業</div><div class="val" id="kOccupation">—</div></div>
+          </div>
+          <div class="info-col">
+            <div class="info-row"><div class="lbl">電話</div><div class="val" id="kPhone">—</div></div>
+            <div class="info-row"><div class="lbl">住所</div><div class="val" id="kAddress">—</div></div>
+            <div class="info-row"><div class="lbl">来院回数</div><div class="val" id="kVisitCount">—</div></div>
+            <div class="info-row"><div class="lbl">担当者</div><div class="val" id="kTherapist">—</div></div>
+          </div>
+        </div>
+        <div class="karte-section">
+          <div class="section-head">主訴・来院理由</div>
+          <div class="sec-body" id="kChief" style="color:var(--ink-soft)">患者を選択してください</div>
+        </div>
+        <div class="karte-section">
+          <div class="section-head">症状部位</div>
+          <div class="body-area">
+            <div class="body-svg-wrap">
+              <svg viewBox="0 0 80 200" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="40" cy="22" rx="12" ry="14" fill="none" stroke="#c4b08a" stroke-width="1.5"/>
+                <rect x="22" y="36" width="36" height="42" rx="5" fill="none" stroke="#c4b08a" stroke-width="1.5"/>
+                <line x1="22" y1="40" x2="6" y2="82" stroke="#c4b08a" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="58" y1="40" x2="74" y2="82" stroke="#c4b08a" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="30" y1="78" x2="26" y2="140" stroke="#c4b08a" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="50" y1="78" x2="54" y2="140" stroke="#c4b08a" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="26" y1="140" x2="22" y2="190" stroke="#c4b08a" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="54" y1="140" x2="58" y2="190" stroke="#c4b08a" stroke-width="1.5" stroke-linecap="round"/>
+                <g id="painMarkers"></g>
+              </svg>
+            </div>
+            <div class="pain-info">
+              <div style="font-size:.65rem;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.08em">記録された症状部位</div>
+              <div id="painTags"><span style="font-size:.72rem;color:var(--ink-soft)">—</span></div>
+              <div class="pain-detail" id="painDetail"></div>
+            </div>
+          </div>
+        </div>
+        <div class="karte-section">
+          <div class="section-head">本日の施術記録</div>
+          <div id="visitRecordArea">
+            <div class="no-record">患者を選択後、音声入力して保存すると施術記録が表示されます</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 音声入力パネル -->
+    <div class="voice-panel">
+      <div class="voice-panel-inner">
+        <div class="mic-wrap">
+          <button class="mic-btn" id="micBtn" onclick="toggleMic()">
+            <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-7 10a7 7 0 0 0 14 0h2a9 9 0 0 1-8 8.94V22h-2v-2.06A9 9 0 0 1 3 11h2z"/></svg>
+          </button>
+          <div class="mic-label" id="micLabel">録音開始</div>
+        </div>
+        <div class="voice-input-area">
+          <textarea class="voice-textarea" id="voiceText" placeholder="マイクをタップ → 話すだけでカルテに記録&#10;例：「腰の右側が7点くらいの痛み、昨日から悪化した」"></textarea>
+          <div class="voice-hint">💡 Web Speech API 使用（無料）</div>
+        </div>
+        <div class="voice-btns">
+          <button class="vbtn vbtn-parse" onclick="parseVoice()">🤖 AI解析</button>
+          <button class="vbtn vbtn-save" onclick="saveGAS()">📊 保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================
+// ▼▼▼ カスタマイズ設定（ここを変更してください）▼▼▼
+// =====================================================
+const CONFIG = {
+  salonName: 'やすらぎ整体院',  // ← 院名をここに入力
+  therapist: '田中 花子',       // ← 担当者名をここに入力
+  gasUrl: 'https://script.google.com/macros/s/AKfycbynwh9DJp2_kpU2ZS_hLkvt4fSwyfn7fMldIQUZR8JKA-PKbaek7SzVLBWmBQbN7Cxl/exec',
+};
+// =====================================================
+// ▲▲▲ カスタマイズ設定ここまで ▲▲▲
+// =====================================================
+
+const PART_MAP = {
+  '頭部':{cx:40,cy:22},'頸部':{cx:40,cy:36},'肩':{cx:58,cy:42},
+  '背部':{cx:40,cy:55},'腰部':{cx:40,cy:70},'骨盤':{cx:40,cy:82},
+  '股関節':{cx:52,cy:90},'大腿部':{cx:48,cy:108},'膝関節':{cx:50,cy:120},
+  '下腿部':{cx:52,cy:140},'足関節':{cx:56,cy:160},
+  '肘関節':{cx:70,cy:65},'手関節':{cx:74,cy:80},
+};
+
+let state = {patients:[], selectedId:null, lastParsed:null};
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('headerLogo').textContent = CONFIG.salonName + ' カルテ';
+  document.getElementById('headerStaff').textContent = '施術者：' + CONFIG.therapist;
+  document.getElementById('karteSalon').textContent = CONFIG.salonName;
+  document.getElementById('kTherapist').textContent = CONFIG.therapist;
+  document.title = CONFIG.salonName + ' カルテ';
+  const d = new Date();
+  document.getElementById('karteDate').textContent =
+    d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日（'+'日月火水木金土'[d.getDay()]+'）';
+  loadPatients();
+});
+
+async function loadPatients() {
+  const el = document.getElementById('patientList');
+  try {
+    const res = await fetch(CONFIG.gasUrl, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({action:'getPatients'}),
+    });
+    const data = await res.json();
+    if (data.success && data.patients && data.patients.length > 0) {
+      state.patients = data.patients;
+      renderPatientList(data.patients);
+    } else {
+      el.innerHTML = '<div style="font-size:.72rem;color:var(--ink-soft);padding:8px 4px;line-height:1.8">患者データがありません。<br>「新規患者を登録」から追加してください。</div>';
+    }
+  } catch(e) {
+    el.innerHTML = '<div style="font-size:.72rem;color:var(--ink-soft);padding:8px 4px;line-height:1.8">「新規患者を登録」から<br>患者を追加してください。</div>';
+  }
+}
+
+function renderPatientList(patients) {
+  const el = document.getElementById('patientList');
+  const colors = ['var(--ink)','#2d6a6a','#5a4030','#3a4a60','#4a3060'];
+  el.innerHTML = '';
+  patients.forEach((p, i) => {
+    const ch = (p.name||'患').replace(/\s/g,'').charAt(0);
+    const div = document.createElement('div');
+    div.className = 'patient-item' + (i===0?' active':'');
+    div.dataset.id = p.id;
+    div.innerHTML = `
+      <div class="patient-avatar" style="background:${colors[i%colors.length]};color:var(--gold)">${ch}</div>
+      <div>
+        <div class="p-name">${p.name||'名前なし'}</div>
+        <div class="p-meta">${p.gender||''}${p.visitCount>0?'　'+p.visitCount+'回':''}</div>
+      </div>`;
+    div.onclick = () => selectPatient(p.id);
+    el.appendChild(div);
+  });
+  if (patients.length > 0) selectPatient(patients[0].id);
+}
+
+function selectPatient(id) {
+  state.selectedId = id;
+  document.querySelectorAll('.patient-item').forEach(el => el.classList.toggle('active', el.dataset.id===id));
+  const p = state.patients.find(p=>p.id===id);
+  if (!p) return;
+  document.getElementById('karteNo').textContent = 'No. ' + (id||'----');
+  document.getElementById('kName').textContent = p.name||'—';
+  document.getElementById('kBirth').textContent = p.birthdate ? formatDate(p.birthdate) : '—';
+  document.getElementById('kGender').textContent = p.gender||'—';
+  document.getElementById('kOccupation').textContent = p.occupation||'—';
+  document.getElementById('kPhone').textContent = p.phone||'—';
+  document.getElementById('kAddress').textContent = p.address||'—';
+  document.getElementById('kVisitCount').textContent = p.visitCount ? p.visitCount+'回' : '初回';
+  const chief = document.getElementById('kChief');
+  chief.textContent = '音声入力 → AI解析 → 保存 で記録されます';
+  chief.style.color = 'var(--ink-soft)';
+  document.getElementById('painTags').innerHTML = '<span style="font-size:.72rem;color:var(--ink-soft)">—</span>';
+  document.getElementById('painDetail').innerHTML = '';
+  document.getElementById('painMarkers').innerHTML = '';
+  document.getElementById('visitRecordArea').innerHTML = '<div class="no-record">音声入力して保存すると施術記録が表示されます</div>';
+  state.lastParsed = null;
+  closeMenu();
+}
+
+function openModal()  { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  ['f-name','f-gender','f-birth','f-phone','f-address','f-occupation','f-history'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+}
+
+async function registerPatient() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('氏名は必須です'); return; }
+  const btn = document.getElementById('btnRegister');
+  btn.textContent='登録中...'; btn.disabled=true;
+  const payload = {
+    action:'newPatient', name,
+    gender:     document.getElementById('f-gender').value,
+    birthdate:  document.getElementById('f-birth').value,
+    phone:      document.getElementById('f-phone').value.trim(),
+    address:    document.getElementById('f-address').value.trim(),
+    occupation: document.getElementById('f-occupation').value.trim(),
+    history:    document.getElementById('f-history').value.trim(),
+  };
+  try {
+    await fetch(CONFIG.gasUrl, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify(payload), mode:'no-cors',
+    });
+    const newId = 'P' + String(state.patients.length+1).padStart(4,'0');
+    state.patients.push({...payload, id:newId, visitCount:0});
+    renderPatientList(state.patients);
+    selectPatient(newId);
+    closeModal();
+    alert('✅ '+name+' さんを登録しました！\nスプレッドシートの「患者マスタ」シートに追加されています。');
+  } catch(e) {
+    alert('登録エラー：'+e.message);
+  } finally {
+    btn.textContent='登録する'; btn.disabled=false;
+  }
+}
+
+let isRec=false, recognition=null, demoTimer=null;
+
+function toggleMic() {
+  isRec = !isRec;
+  const btn=document.getElementById('micBtn'), lbl=document.getElementById('micLabel');
+  if (isRec) {
+    btn.classList.add('rec'); lbl.textContent='録音中...';
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+      recognition = new SR();
+      recognition.lang='ja-JP'; recognition.continuous=true; recognition.interimResults=true;
+      recognition.onresult = e => {
+        let t='';
+        for(let i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript;
+        document.getElementById('voiceText').value=t;
+      };
+      recognition.onerror = () => stopMic();
+      recognition.start();
+    } else {
+      demoTimer = setTimeout(()=>{
+        document.getElementById('voiceText').value='今日は腰の右側が痛いとおっしゃっています。痛みは7点くらい。先週から悪化していて、長時間座っていると特につらい。';
+      }, 2000);
+    }
+  } else { stopMic(); }
+}
+
+function stopMic() {
+  isRec=false;
+  const btn=document.getElementById('micBtn'), lbl=document.getElementById('micLabel');
+  btn.classList.remove('rec'); lbl.textContent='録音完了 ✓';
+  setTimeout(()=>{lbl.textContent='録音開始';},3000);
+  if(recognition){recognition.stop();recognition=null;}
+  if(demoTimer){clearTimeout(demoTimer);demoTimer=null;}
+}
+
+function localParse(text) {
+  const dict=[
+    {k:'腰',l:'腰部'},{k:'肩',l:'肩'},{k:'首',l:'頸部'},{k:'頸',l:'頸部'},
+    {k:'背中',l:'背部'},{k:'股関節',l:'股関節'},{k:'膝',l:'膝関節'},
+    {k:'足首',l:'足関節'},{k:'手首',l:'手関節'},{k:'肘',l:'肘関節'},
+    {k:'頭',l:'頭部'},{k:'骨盤',l:'骨盤'},{k:'ふくらはぎ',l:'下腿部'},{k:'太もも',l:'大腿部'},
+  ];
+  const parts=[];
+  dict.forEach(({k,l})=>{if(text.includes(k)&&!parts.includes(l))parts.push(l);});
+  const m=text.match(/([0-9０-９]+)\s*[点\/]/);
+  const level=m?m[1].replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)):null;
+  return {painParts:parts, painLevel:level, chiefComplaint:text};
+}
+
+function parseVoice() {
+  const text=document.getElementById('voiceText').value.trim();
+  if(!text){alert('まず録音してください');return;}
+  const parsed=localParse(text);
+  state.lastParsed=parsed;
+  document.getElementById('painTags').innerHTML = parsed.painParts.length
+    ? parsed.painParts.map(p=>`<span class="pain-tag">${p}</span>`).join('')
+    : '<span style="font-size:.72rem;color:var(--ink-soft)">部位が検出されませんでした</span>';
+  document.getElementById('painDetail').innerHTML = parsed.painLevel
+    ? `痛みレベル：<strong style="color:var(--red)">${parsed.painLevel} / 10</strong>`
+    : '痛みレベル：記載なし';
+  document.getElementById('painMarkers').innerHTML = parsed.painParts
+    .filter(p=>PART_MAP[p])
+    .map(p=>`<circle cx="${PART_MAP[p].cx}" cy="${PART_MAP[p].cy}" r="7" fill="rgba(176,48,48,0.2)" stroke="#b03030" stroke-width="1.5"/>`)
+    .join('');
+  const chief=document.getElementById('kChief');
+  chief.textContent=text; chief.style.color='var(--ink)';
+  document.getElementById('micLabel').textContent='解析完了 ✓';
+  setTimeout(()=>{document.getElementById('micLabel').textContent='録音開始';},2000);
+}
+
+async function saveGAS() {
+  const text=document.getElementById('voiceText').value.trim();
+  if(!text){alert('音声テキストがありません');return;}
+  if(!state.selectedId){alert('患者を選択してください');return;}
+  const lbl=document.getElementById('micLabel');
+  lbl.textContent='保存中...';
+  const parsed=state.lastParsed||localParse(text);
+  const p=state.patients.find(p=>p.id===state.selectedId);
+  try {
+    await fetch(CONFIG.gasUrl, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({
+        action:'saveVisit', patientId:state.selectedId,
+        therapist:CONFIG.therapist, chiefComplaint:parsed.chiefComplaint,
+        painLevel:parsed.painLevel||'', painParts:parsed.painParts.join('・'),
+        findings:'', treatment:'', afterState:'', nextNote:'', voiceText:text,
+      }), mode:'no-cors',
+    });
+    const newCount=(p?(Number(p.visitCount)||0):0)+1;
+    if(p) p.visitCount=newCount;
+    document.getElementById('kVisitCount').textContent=newCount+'回';
+    const now=new Date();
+    const timeStr=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('visitRecordArea').innerHTML=`
+      <div class="visit-box" style="margin-top:10px">
+        <div class="visit-head">
+          <span>施術記録</span>
+          <span>${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()} ${timeStr}</span>
+        </div>
+        <div class="visit-body">
+          <div class="vrow"><span class="vlbl">本日の訴え</span><span>${text}</span></div>
+          <div class="vrow"><span class="vlbl">症状部位</span><span>${parsed.painParts.join('・')||'—'}</span></div>
+          <div class="vrow"><span class="vlbl">痛みレベル</span><span>${parsed.painLevel?parsed.painLevel+'/10':'—'}</span></div>
+          <div class="vrow"><span class="vlbl">担当者</span><span>${CONFIG.therapist}</span></div>
+        </div>
+      </div>`;
+    lbl.textContent='保存完了 ✓';
+    setTimeout(()=>{lbl.textContent='録音開始';},3000);
+    document.getElementById('voiceText').value='';
+    state.lastParsed=null;
+    alert('📊 スプレッドシートに保存しました！\n\n患者：'+(p?p.name:'')+'\n症状：'+(parsed.painParts.join('・')||'未検出')+'\n\n「来院記録」シートを確認してください。');
+  } catch(e) {
+    lbl.textContent='録音開始';
+    alert('保存エラー：'+e.message);
+  }
+}
+
+function formatDate(s) {
+  if(!s) return '—';
+  const d=new Date(s);
+  if(isNaN(d)) return s;
+  const age=Math.floor((new Date()-d)/(365.25*24*60*60*1000));
+  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日（'+age+'歳）';
+}
+function toggleMenu(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeMenu(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+</script>
+</body>
+</html>
